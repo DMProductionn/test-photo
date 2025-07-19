@@ -9,6 +9,7 @@ function isMobile() {
 export default function Camera() {
   const [mobile, setMobile] = useState(false);
   const [error, setError] = useState('');
+  const [permissionDenied, setPermissionDenied] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const overlayRef = useRef<HTMLImageElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -19,28 +20,37 @@ export default function Camera() {
     setMobile(isMobile());
   }, []);
 
-  useEffect(() => {
-    if (!mobile) return;
-    let stream: MediaStream;
-    const startCamera = async () => {
-      try {
-        stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: 'environment' },
-          audio: false,
-        });
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
-        }
-      } catch (e) {
+  const startCamera = async () => {
+    setError('');
+    setPermissionDenied(false);
+    let stream: MediaStream | undefined;
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'environment' },
+        audio: false,
+      });
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+      }
+    } catch (e: any) {
+      if (e && (e.name === 'NotAllowedError' || e.name === 'PermissionDeniedError')) {
+        setPermissionDenied(true);
+        setError('Доступ к камере запрещён.');
+      } else {
         setError('Не удалось получить доступ к камере');
       }
-    };
-    startCamera();
+    }
     return () => {
       if (stream) {
         stream.getTracks().forEach((track) => track.stop());
       }
     };
+  };
+
+  useEffect(() => {
+    if (!mobile) return;
+    startCamera();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mobile]);
 
   const handleTakePhoto = () => {
@@ -87,6 +97,74 @@ export default function Camera() {
     );
   }
 
+  if (error) {
+    return (
+      <div
+        style={{
+          minHeight: '100vh',
+          background: '#111',
+          color: '#fff',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          fontSize: 20,
+          textAlign: 'center',
+          padding: 24,
+        }}>
+        <div style={{ marginBottom: 24 }}>{error}</div>
+        {permissionDenied ? (
+          <>
+            <div style={{ marginBottom: 24 }}>
+              Вы запретили доступ к камере.
+              <br />
+              Чтобы использовать функцию, разрешите доступ к камере в настройках браузера или
+              устройства.
+              <br />
+              <br />
+              <b>Инструкция:</b>
+              <br />
+              1. Откройте настройки браузера (или значок замка в адресной строке).
+              <br />
+              2. Найдите раздел "Разрешения" или "Камера".
+              <br />
+              3. Разрешите доступ к камере для этого сайта.
+              <br />
+              4. Перезагрузите страницу.
+            </div>
+            <button
+              style={{
+                fontSize: 20,
+                padding: '12px 32px',
+                borderRadius: 8,
+                border: 'none',
+                background: '#0af',
+                color: '#fff',
+                fontWeight: 600,
+              }}
+              onClick={startCamera}>
+              Попробовать снова
+            </button>
+          </>
+        ) : (
+          <button
+            style={{
+              fontSize: 20,
+              padding: '12px 32px',
+              borderRadius: 8,
+              border: 'none',
+              background: '#0af',
+              color: '#fff',
+              fontWeight: 600,
+            }}
+            onClick={startCamera}>
+            Попробовать снова
+          </button>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div
       style={{
@@ -96,21 +174,6 @@ export default function Camera() {
         overflow: 'hidden',
         background: '#000',
       }}>
-      {error && (
-        <div
-          style={{
-            color: '#fff',
-            background: '#a00',
-            padding: 16,
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            width: '100%',
-            zIndex: 10,
-          }}>
-          {error}
-        </div>
-      )}
       <video
         ref={videoRef}
         autoPlay
