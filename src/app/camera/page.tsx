@@ -33,8 +33,9 @@ export default function Camera() {
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
       }
-    } catch (e: any) {
-      if (e && (e.name === 'NotAllowedError' || e.name === 'PermissionDeniedError')) {
+    } catch (e: unknown) {
+      const err = e as { name?: string };
+      if (err && (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError')) {
         setPermissionDenied(true);
         setError('Доступ к камере запрещён.');
       } else {
@@ -51,7 +52,6 @@ export default function Camera() {
   useEffect(() => {
     if (!mobile) return;
     startCamera();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mobile]);
 
   const handleTakePhoto = () => {
@@ -127,7 +127,7 @@ export default function Camera() {
               <br />
               1. Откройте настройки браузера (или значок замка в адресной строке).
               <br />
-              2. Найдите раздел "Разрешения" или "Камера".
+              2. Найдите раздел &quot;Разрешения&quot; или &quot;Камера&quot;.
               <br />
               3. Разрешите доступ к камере для этого сайта.
               <br />
