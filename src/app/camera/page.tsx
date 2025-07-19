@@ -13,6 +13,7 @@ export default function Camera() {
   const overlayRef = useRef<HTMLImageElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
+  const [scale, setScale] = useState(1);
 
   useEffect(() => {
     setMobile(isMobile());
@@ -54,8 +55,9 @@ export default function Camera() {
     canvas.height = video.videoHeight;
     // Нарисуем кадр с камеры
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-    // Наложим PNG по центру
-    const overlayWidth = canvas.width * 0.7;
+    // Наложим PNG по центру с учетом масштаба
+    const baseOverlayWidth = canvas.width * 0.7;
+    const overlayWidth = baseOverlayWidth * scale;
     const overlayHeight = overlay.height * (overlayWidth / overlay.width);
     ctx.drawImage(
       overlay,
@@ -123,7 +125,7 @@ export default function Camera() {
           left: 0,
         }}
       />
-      {/* Overlay PNG по центру */}
+      {/* Overlay PNG по центру с масштабированием */}
       <img
         ref={overlayRef}
         src="/test.jpg"
@@ -132,13 +134,56 @@ export default function Camera() {
           position: 'absolute',
           top: '50%',
           left: '50%',
-          width: '70vw',
-          maxWidth: 400,
-          transform: 'translate(-50%, -50%)',
+          width: `${70 * scale}vw`,
+          maxWidth: 400 * scale,
+          transform: `translate(-50%, -50%) scale(${scale})`,
           pointerEvents: 'none',
           zIndex: 2,
+          transition: 'transform 0.2s, width 0.2s',
         }}
       />
+      {/* Кнопки масштабирования */}
+      <div
+        style={{
+          position: 'absolute',
+          top: 20,
+          left: 0,
+          width: '100vw',
+          display: 'flex',
+          justifyContent: 'center',
+          zIndex: 10,
+          gap: 20,
+        }}>
+        <button
+          onClick={() => setScale((s) => Math.max(0.5, s - 0.1))}
+          style={{
+            fontSize: 32,
+            width: 56,
+            height: 56,
+            borderRadius: 28,
+            border: 'none',
+            background: '#222',
+            color: '#fff',
+            marginRight: 10,
+            boxShadow: '0 2px 8px #0006',
+          }}>
+          -
+        </button>
+        <button
+          onClick={() => setScale((s) => Math.min(2, s + 0.1))}
+          style={{
+            fontSize: 32,
+            width: 56,
+            height: 56,
+            borderRadius: 28,
+            border: 'none',
+            background: '#222',
+            color: '#fff',
+            boxShadow: '0 2px 8px #0006',
+          }}>
+          +
+        </button>
+      </div>
       {/* Кнопка сделать фото */}
       <button
         onClick={handleTakePhoto}
